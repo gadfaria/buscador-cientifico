@@ -4,17 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useData from "@/hooks/useData";
 
-// import { columns } from "./components/columns"
-// import { DataTable } from "./components/data-table"
-// import { UserNav } from "./components/user-nav"
-// import { taskSchema } from "./data/schema"
-
 export default function TaskPage() {
   const { records, progress, count, getCount, getData, getAbstracts } =
     useData();
 
   async function handleSearch(lookFor: string) {
-    // await getCount(lookFor);
     await getData({ lookFor });
   }
 

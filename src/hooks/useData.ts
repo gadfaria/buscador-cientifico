@@ -1,10 +1,13 @@
 import { bdtdAPI } from "@/apis/bdtd";
+import { recordsAtom } from "@/atoms/recordsAtom";
 import { BDTDRecord } from "@/schemas/bdtd";
 import { GeneralRecord } from "@/schemas/record";
+import { useAtom } from "jotai/react";
 import { useState } from "react";
 
 export default function useData() {
-  const [records, setRecords] = useState<GeneralRecord[]>([]);
+  const [records, setRecords] = useAtom(recordsAtom);
+
   const [count, setCount] = useState<number>();
   const [progress, setProgress] = useState<{
     type: "info" | "abstract";
@@ -16,13 +19,7 @@ export default function useData() {
     setCount(data);
   }
 
-  async function getData({
-    lookFor,
-    dateRange,
-  }: {
-    lookFor: string;
-    dateRange?: [Date | null, Date | null];
-  }) {
+  async function getData({ lookFor }: { lookFor: string }) {
     let total = 0;
 
     let bdtdRecord: BDTDRecord[] = [];
