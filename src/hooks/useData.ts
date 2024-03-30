@@ -9,10 +9,7 @@ export default function useData() {
   const [records, setRecords] = useAtom(recordsAtom);
 
   const [count, setCount] = useState<number>();
-  const [progress, setProgress] = useState<{
-    type: "info" | "abstract";
-    value: number;
-  } | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
 
   async function getCount(lookFor: string) {
     const data = await bdtdAPI.getCount({ lookFor });
@@ -29,10 +26,7 @@ export default function useData() {
     while (true) {
       countTest++;
 
-      setProgress({
-        type: "info",
-        value: total ? Math.round((countTest / (total / 100)) * 100) : 0,
-      });
+      setProgress(total ? Math.round((countTest / (total / 100)) * 100) : 0);
 
       const data = await bdtdAPI.getData({ lookFor, page: countTest });
 
@@ -47,6 +41,7 @@ export default function useData() {
     }
 
     const mappedRecords: GeneralRecord[] = bdtdRecord.map((record) => ({
+      id: record.id,
       author: Object.keys(record.authors.primary)[0],
       publicationDate: record.publicationDates[0],
       title: record.title,
@@ -58,18 +53,18 @@ export default function useData() {
   }
 
   async function getAbstracts() {
-    // const recordsWithAbstracts = [...records];
-    // for (let i = 0; i < recordsWithAbstracts.length; i++) {
-    //   setProgress({
-    //     type: "abstract",
-    //     value: Math.round(((i + 1) / recordsWithAbstracts.length) * 100),
-    //   });
-    //   const record = recordsWithAbstracts[i];
-    //   const abstract = await bdtdAPI.getAbstracts(record.id);
-    //   record.abstract = abstract;
-    // }
-    // setRecords(recordsWithAbstracts);
-    // setProgress(null);
+    if (!records) return;
+    const recordsWithAbstracts = [...records];
+    for (let i = 0; i < recordsWithAbstracts.length; i++) {
+      setProgress(Math.round(((i + 1) / recordsWithAbstracts.length) * 100));
+      const record = recordsWithAbstracts[i];
+      const abstract = await bdtdAPI.getAbstracts(record.id);
+      record.abstract = abstract;
+
+      if(i === 10) break;
+    }
+    setRecords(recordsWithAbstracts);
+    setProgress(null);
   }
 
   return {
