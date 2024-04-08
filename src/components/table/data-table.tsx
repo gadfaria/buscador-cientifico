@@ -93,6 +93,7 @@ export function DataTable<TData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    onClick={() => row.toggleExpanded()}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>

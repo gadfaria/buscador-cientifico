@@ -26,6 +26,7 @@ export const columns: ColumnDef<GeneralRecord>[] = [
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
         className="translate-y-[2px]"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     enableSorting: false,
