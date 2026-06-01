@@ -35,7 +35,7 @@ dedup é heurístico: título normalizado + primeiro autor + ano.
 ## Stack
 
 Next.js (App Router, SSR) · TypeScript · Tailwind + shadcn/ui (tema acadêmico) ·
-ioredis · TanStack Query (pronto para uso client-side).
+ioredis · TanStack Query (pronto para uso client-side) · localStorage (curadoria).
 
 ## Setup
 
@@ -61,6 +61,22 @@ Cada período (2017-2020, 2021-2024, …) é um resource separado. **Valide os n
 das colunas** de um resource real (`datastore_search?resource_id=...&limit=1`)
 contra o mapa em `src/lib/federation/capes.ts` (`COLS`) — eles variam por ano.
 
+## Curadoria de resultados
+
+A lista de resultados é interativa: para cada item você pode **marcar com cor**
+(5 cores — a borda esquerda do card reflete a marca) e **ocultar/restaurar**.
+A toolbar acima da lista permite **filtrar por cor** e rever os **ocultados (N)**.
+
+As anotações são dado do usuário sobre o corpus (não o corpus), então são
+persistidas no **`localStorage`** do navegador — sem ferir o "zero-banco".
+São chaveadas pelo id canônico da tese (`bdtd:…` / `capes:…`), logo a marcação
+sobrevive a recarregar a página e reaparece em buscas futuras. O store
+(`src/lib/annotations.tsx`) hidrata após o mount (evita mismatch de SSR) e
+degrada para só-memória se o `localStorage` estiver indisponível.
+
+Limite: é **por-navegador** (não sincroniza entre dispositivos). Para sync,
+trocar o store por um backend de contas sem mexer na UI.
+
 ## Estrutura
 
 ```
@@ -73,16 +89,19 @@ src/
   components/
     search-box.tsx        # client
     facets.tsx            # client (accordion + checkbox)
-    result-card.tsx       # server
+    results-list.tsx      # client: toolbar (filtro por cor, ocultados)
+    result-card.tsx       # client: marcar com cor / ocultar
     ui/                   # shadcn (button, input, card, badge, accordion, ...)
-  lib/federation/
-    index.ts              # orquestração: scatter-gather + cache
-    bdtd.ts               # adapter VuFind
-    capes.ts              # adapter CKAN DataStore
-    merge.ts              # dedup + enriquecimento
-    cache.ts              # Redis (getOrSet) com fallback no-op
-    http.ts               # fetch com timeout por fonte
-    types.ts              # contrato canônico
+  lib/
+    annotations.tsx       # store de curadoria (localStorage) + provider
+    federation/
+      index.ts            # orquestração: scatter-gather + cache
+      bdtd.ts             # adapter VuFind
+      capes.ts            # adapter CKAN DataStore
+      merge.ts            # dedup + enriquecimento
+      cache.ts            # Redis (getOrSet) com fallback no-op
+      http.ts             # fetch com timeout por fonte
+      types.ts            # contrato canônico
 ```
 
 ## Caveats conhecidos (assumidos pela federação pura)
@@ -102,3 +121,5 @@ src/
   limit do upstream).
 - Circuit breaker por fonte; métricas de latência/erro.
 - Mobile: filtros num `Sheet`.
+- Curadoria: notas de texto por resultado e exportar a seleção (BibTeX/CSV).
+- Página "Minha curadoria" agregando tudo que foi marcado, fora da busca atual.

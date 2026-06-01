@@ -4,7 +4,7 @@ import { search, parseSearchParams } from "@/lib/federation";
 import type { SearchParams } from "@/lib/federation/types";
 import { SearchBox } from "@/components/search-box";
 import { Facets } from "@/components/facets";
-import { ResultCard } from "@/components/result-card";
+import { ResultsList } from "@/components/results-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -105,13 +105,7 @@ async function Results({
             Nenhum resultado encontrado.
           </p>
         ) : (
-          <ol className="space-y-4">
-            {result.hits.map((thesis) => (
-              <li key={thesis.id}>
-                <ResultCard thesis={thesis} />
-              </li>
-            ))}
-          </ol>
+          <ResultsList hits={result.hits} />
         )}
 
         <Pagination
