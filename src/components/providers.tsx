@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { CollectionProvider } from "@/lib/collection";
 
 /*
   Provider do TanStack Query. Hoje o fluxo principal é SSR/URL-driven
@@ -16,5 +17,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
       }),
   );
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <CollectionProvider>{children}</CollectionProvider>
+    </QueryClientProvider>
+  );
 }

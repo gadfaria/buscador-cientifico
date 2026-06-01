@@ -35,7 +35,8 @@ dedup é heurístico: título normalizado + primeiro autor + ano.
 ## Stack
 
 Next.js (App Router, SSR) · TypeScript · Tailwind + shadcn/ui (tema acadêmico) ·
-ioredis · TanStack Query (pronto para uso client-side).
+ioredis · TanStack Query (pronto para uso client-side) · localForage/IndexedDB
+(coleção de trabalho).
 
 ## Setup
 
@@ -61,28 +62,65 @@ Cada período (2017-2020, 2021-2024, …) é um resource separado. **Valide os n
 das colunas** de um resource real (`datastore_search?resource_id=...&limit=1`)
 contra o mapa em `src/lib/federation/capes.ts` (`COLS`) — eles variam por ano.
 
+## Fluxo de uso e curadoria
+
+1. **Busca** — você pesquisa e a tela mostra apenas a **contagem por fonte**
+   (BDTD, CAPES) + um botão.
+2. **Coletar** — "Adicionar à coleção e gerenciar" materializa os **top 100**
+   resultados mais relevantes (via `/api/collect`) e leva para a coleção.
+3. **Gerenciar** (`/colecao`) — você **remove** o que não interessa, cria e
+   atribui **labels** (nome + cor), **anota** cada item, **filtra por label** e
+   **exporta/importa** para continuar depois.
+
+A coleção é **acumulativa**: uma coleção única que cresce a cada busca (dedup por
+id canônico), então a curadoria nunca se perde ao buscar de novo.
+
+### Persistência (sem banco) e export/import
+
+A coleção guarda os **registros de verdade** (resumos inclusos) de centenas de
+itens — pesado e estruturado. Por isso usa **localForage (IndexedDB)** e não
+`localStorage` (síncrono, ~5 MB, só string). O store (`src/lib/collection.tsx`)
+hidrata após o mount (evita mismatch de SSR) e degrada para só-memória se o
+IndexedDB estiver indisponível.
+
+Como é dado do usuário sobre o corpus — não o corpus — isso não fere o
+"zero-banco". Export/import:
+
+- **JSON** — round-trip fiel (itens + labels + atribuições + notas); reimporta e
+  continua de onde parou (merge: soma itens e funde labels por nome).
+- **CSV** — saída para planilha (uma linha por item, labels como coluna).
+
+Limite: é **por-navegador** (não sincroniza entre dispositivos). O JSON é o
+"backup" portátil; para sync automático, trocar o store por um backend de contas
+sem mexer na UI.
+
 ## Estrutura
 
 ```
 src/
   app/
-    page.tsx              # busca (SSR, URL-driven) + facets + paginação
+    page.tsx              # busca (SSR) → contagem por fonte + botão coletar
+    colecao/page.tsx      # tela de gerência da coleção (noindex)
     tese/[id]/page.tsx    # detalhe do registro (indexável, generateMetadata)
-    api/search/route.ts   # BFF: GET /api/search
+    api/search/route.ts   # BFF: GET /api/search (busca paginada)
+    api/collect/route.ts  # BFF: GET /api/collect (materializa top-N)
     api/record/[id]/route.ts
   components/
-    search-box.tsx        # client
-    facets.tsx            # client (accordion + checkbox)
-    result-card.tsx       # server
-    ui/                   # shadcn (button, input, card, badge, accordion, ...)
-  lib/federation/
-    index.ts              # orquestração: scatter-gather + cache
-    bdtd.ts               # adapter VuFind
-    capes.ts              # adapter CKAN DataStore
-    merge.ts              # dedup + enriquecimento
-    cache.ts              # Redis (getOrSet) com fallback no-op
-    http.ts               # fetch com timeout por fonte
-    types.ts              # contrato canônico
+    search-box.tsx              # client
+    add-to-collection-button.tsx # client: coleta top-N e vai pra /colecao
+    collection-list.tsx         # client: toolbar (labels, filtro, export/import)
+    collection-item.tsx         # client: card de item (labels, nota, remover)
+    ui/                         # shadcn (button, input, card, badge, accordion, ...)
+  lib/
+    collection.tsx        # store da coleção (localForage) + provider
+    federation/
+      index.ts            # orquestração: scatter-gather + cache
+      bdtd.ts             # adapter VuFind
+      capes.ts            # adapter CKAN DataStore
+      merge.ts            # dedup + enriquecimento
+      cache.ts            # Redis (getOrSet) com fallback no-op
+      http.ts             # fetch com timeout por fonte
+      types.ts            # contrato canônico
 ```
 
 ## Caveats conhecidos (assumidos pela federação pura)
@@ -98,7 +136,8 @@ src/
 ## Próximos passos sugeridos
 
 - Validar o mapa de colunas da CAPES contra resources reais.
-- Instant-search: debounce no `SearchBox` + `router.replace` (cuidado com rate
-  limit do upstream).
 - Circuit breaker por fonte; métricas de latência/erro.
-- Mobile: filtros num `Sheet`.
+- Coleta: "carregar mais" para ir além dos 100 (paginar as fontes na coleta).
+- Coleção: múltiplas coleções nomeadas (projetos) e export BibTeX/RIS.
+- Sync entre dispositivos via backend de contas (trocando o store, sem mexer na UI).
+- Mobile: gerenciador de labels num `Sheet`.
