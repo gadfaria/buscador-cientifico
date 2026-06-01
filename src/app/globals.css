@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Tema acadêmico: fundo cor de papel, texto tom de tinta,
+  acento institucional navy profundo. Baixa saturação, flat.
+*/
+@layer base {
+  :root {
+    --background: 40 33% 98%; /* papel quente */
+    --foreground: 220 18% 16%; /* tinta */
+
+    --card: 40 33% 99%;
+    --card-foreground: 220 18% 16%;
+
+    --primary: 214 44% 24%; /* navy institucional */
+    --primary-foreground: 40 33% 98%;
+
+    --secondary: 40 16% 93%;
+    --secondary-foreground: 220 18% 22%;
+
+    --muted: 40 14% 94%;
+    --muted-foreground: 220 10% 42%;
+
+    --accent: 40 18% 90%;
+    --accent-foreground: 214 44% 24%;
+
+    --border: 40 14% 86%;
+    --input: 40 14% 86%;
+    --ring: 214 44% 32%;
+
+    --radius: 0.375rem; /* rounded-md, nada de pill */
+  }
+
+  .dark {
+    --background: 220 22% 11%;
+    --foreground: 40 20% 92%;
+    --card: 220 20% 13%;
+    --card-foreground: 40 20% 92%;
+    --primary: 210 55% 70%;
+    --primary-foreground: 220 22% 11%;
+    --secondary: 220 14% 20%;
+    --secondary-foreground: 40 20% 92%;
+    --muted: 220 14% 18%;
+    --muted-foreground: 220 10% 64%;
+    --accent: 220 14% 22%;
+    --accent-foreground: 210 55% 75%;
+    --border: 220 14% 24%;
+    --input: 220 14% 24%;
+    --ring: 210 55% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "kern", "liga", "onum";
+  }
+  h1, h2, h3, .font-display {
+    @apply font-serif;
+    letter-spacing: -0.01em;
+  }
+}
