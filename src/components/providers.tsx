@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { AnnotationsProvider } from "@/lib/annotations";
+import { CollectionProvider } from "@/lib/collection";
 
 /*
   Provider do TanStack Query. Hoje o fluxo principal é SSR/URL-driven
@@ -19,7 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <AnnotationsProvider>{children}</AnnotationsProvider>
+      <CollectionProvider>{children}</CollectionProvider>
     </QueryClientProvider>
   );
 }

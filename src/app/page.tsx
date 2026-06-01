@@ -1,17 +1,22 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Library } from "lucide-react";
 import { search, parseSearchParams } from "@/lib/federation";
-import type { SearchParams } from "@/lib/federation/types";
+import type { SearchParams, SourceName } from "@/lib/federation/types";
 import { SearchBox } from "@/components/search-box";
-import { Facets } from "@/components/facets";
-import { ResultsList } from "@/components/results-list";
+import { AddToCollectionButton } from "@/components/add-to-collection-button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 type SP = Record<string, string | string[] | undefined>;
+
+const SOURCE_LABEL: Record<SourceName, string> = {
+  bdtd: "BDTD (IBICT)",
+  capes: "Catálogo CAPES",
+};
 
 function buildQuery(sp: SP): string {
   const params = new URLSearchParams();
@@ -35,6 +40,13 @@ export default async function Home({
   return (
     <div className="container py-8">
       <header className="mx-auto max-w-3xl text-center">
+        <div className="flex items-center justify-end">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/colecao">
+              <Library className="h-4 w-4" /> Minha coleção
+            </Link>
+          </Button>
+        </div>
         <Link href="/" className="inline-block">
           <h1 className="font-serif text-3xl font-semibold text-primary">
             Buscador Científico
@@ -49,8 +61,8 @@ export default async function Home({
       </header>
 
       {hasQuery ? (
-        <Suspense key={query} fallback={<ResultsSkeleton />}>
-          <Results params={params} query={query} />
+        <Suspense key={query} fallback={<CountsSkeleton />}>
+          <Counts params={params} query={query} />
         </Suspense>
       ) : (
         <EmptyState />
@@ -59,102 +71,61 @@ export default async function Home({
   );
 }
 
-async function Results({
+async function Counts({
   params,
   query,
 }: {
   params: SearchParams;
   query: string;
 }) {
-  const result = await search(params);
+  // Só as contagens por fonte — barato (limit=1). O lote vem no botão.
+  const result = await search({ ...params, limit: 1 });
+  const totalOk = result.sources.some((s) => s.ok && s.total > 0);
 
   return (
-    <div className="mt-8 grid gap-8 md:grid-cols-[240px_1fr]">
-      <div className="hidden md:block">
-        <Facets facets={result.facets} selected={params.filters} query={query} />
+    <section className="mx-auto mt-10 max-w-3xl">
+      <p className="mb-4 text-center text-sm text-muted-foreground">
+        Resultados para{" "}
+        <span className="font-medium text-foreground">“{result.query}”</span>
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {result.sources.map((s) => (
+          <Card key={s.name}>
+            <CardContent className="p-5">
+              <p className="text-sm text-muted-foreground">
+                {SOURCE_LABEL[s.name]}
+              </p>
+              {s.ok ? (
+                <p className="mt-1 font-serif text-3xl font-semibold text-primary">
+                  {s.total.toLocaleString("pt-BR")}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-rose-600">indisponível</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {s.ok ? `respondeu em ${s.tookMs}ms` : s.error}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <section>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+      <div className="mt-6 flex flex-col items-center gap-2">
+        {totalOk ? (
+          <AddToCollectionButton query={query} cap={100} />
+        ) : (
           <p className="text-sm text-muted-foreground">
-            ~{result.total.toLocaleString("pt-BR")} resultados para{" "}
-            <span className="font-medium text-foreground">“{result.query}”</span>
-          </p>
-          <div className="flex items-center gap-1.5">
-            {result.sources.map((s) => (
-              <Badge
-                key={s.name}
-                variant={s.ok ? "outline" : "default"}
-                title={s.error ?? `${s.total} resultados · ${s.tookMs}ms`}
-              >
-                {s.name.toUpperCase()} {s.ok ? `· ${s.tookMs}ms` : "· indisponível"}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {result.partial && (
-          <p className="mb-4 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            Uma das fontes não respondeu a tempo — resultados podem estar
-            incompletos.
-          </p>
-        )}
-
-        {result.hits.length === 0 ? (
-          <p className="py-12 text-center text-muted-foreground">
             Nenhum resultado encontrado.
           </p>
-        ) : (
-          <ResultsList hits={result.hits} />
         )}
-
-        <Pagination
-          page={params.page}
-          hasMore={result.hits.length >= params.limit}
-          query={query}
-        />
-      </section>
-    </div>
-  );
-}
-
-function Pagination({
-  page,
-  hasMore,
-  query,
-}: {
-  page: number;
-  hasMore: boolean;
-  query: string;
-}) {
-  function href(p: number) {
-    const params = new URLSearchParams(query);
-    params.set("page", String(p));
-    return `/?${params.toString()}`;
-  }
-  if (page <= 1 && !hasMore) return null;
-  return (
-    <nav className="mt-8 flex items-center justify-between" aria-label="Paginação">
-      {page > 1 ? (
-        <Button asChild variant="outline" size="sm">
-          <Link href={href(page - 1)}>← Anterior</Link>
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" disabled>
-          ← Anterior
-        </Button>
-      )}
-      <span className="text-sm text-muted-foreground">Página {page}</span>
-      {hasMore ? (
-        <Button asChild variant="outline" size="sm">
-          <Link href={href(page + 1)}>Próxima →</Link>
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" disabled>
-          Próxima →
-        </Button>
-      )}
-    </nav>
+        {totalOk && (
+          <p className="text-xs text-muted-foreground">
+            Traz os 100 resultados mais relevantes para a sua coleção.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -163,28 +134,22 @@ function EmptyState() {
     <div className="mx-auto mt-16 max-w-md text-center text-muted-foreground">
       <p className="text-sm">
         Pesquise entre centenas de milhares de teses e dissertações brasileiras.
-        A busca é feita ao vivo nas fontes oficiais.
+        A busca é feita ao vivo nas fontes oficiais; os resultados que interessam
+        você guarda e gerencia na sua coleção.
       </p>
     </div>
   );
 }
 
-function ResultsSkeleton() {
+function CountsSkeleton() {
   return (
-    <div className="mt-8 grid gap-8 md:grid-cols-[240px_1fr]">
-      <div className="hidden md:block">
-        <Skeleton className="h-6 w-24" />
-        <div className="mt-4 space-y-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-4 w-full" />
-          ))}
-        </div>
+    <section className="mx-auto mt-10 max-w-3xl">
+      <Skeleton className="mx-auto mb-4 h-4 w-48" />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
       </div>
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
-    </div>
+      <Skeleton className="mx-auto mt-6 h-11 w-72" />
+    </section>
   );
 }
